@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Texture Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <h1 id="title">Unity ↔ Unreal Texture Converter</h1>
+        <p id="subtitle">Browser-based texture channel converter</p>
+      </div>
+
+      <div class="lang-switch">
+        <button id="koBtn">한국어</button>
+        <button id="enBtn">English</button>
+      </div>
+    </header>
+
+    <section class="preview-grid">
+      <div class="panel">
+        <h2 id="beforeLabel">Before</h2>
+        <img id="beforePreview" />
+      </div>
+
+      <div class="panel">
+        <h2 id="afterLabel">After</h2>
+        <img id="afterPreview" />
+      </div>
+    </section>
+
+    <section class="channel-panel">
+      <h2>Channels</h2>
+
+      <div class="channel-buttons">
+        <button data-channel="rgb">RGB</button>
+        <button data-channel="r">R</button>
+        <button data-channel="g">G</button>
+        <button data-channel="b">B</button>
+        <button data-channel="a">A</button>
+      </div>
+    </section>
+
+    <section class="tool-grid">
+      <div class="card dropzone" id="unityDrop">
+        <h2>Unity URP → Unreal ORM</h2>
+        <p>MetallicSmoothness → ORM</p>
+      </div>
+
+      <div class="card dropzone" id="ormDrop">
+        <h2>Unreal ORM → Unity URP</h2>
+        <p>ORM → MetallicSmoothness</p>
+      </div>
+    </section>
+
+    <section class="tool-grid">
+      <div class="card dropzone" id="splitDrop">
+        <h2>Split Channels</h2>
+        <p>Extract texture channels</p>
+      </div>
+
+      <div class="card dropzone" id="batchDrop">
+        <h2>Batch Processor</h2>
+        <p>Drop multiple textures or folders</p>
+      </div>
+    </section>
+
+    <input type="file" id="unityInput" accept="image/png,image/jpeg" hidden />
+    <input type="file" id="ormInput" accept="image/png,image/jpeg" hidden />
+    <input type="file" id="splitInput" accept="image/png,image/jpeg" hidden />
+    <input type="file" id="batchInput" accept="image/png,image/jpeg" multiple webkitdirectory hidden />
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
