@@ -491,7 +491,11 @@ async function batchProcess(files){
 
       if(!groups[key]) groups[key]={};
 
-      if(name.includes('ao')||name.includes('occlusion')) groups[key].ao=file;
+      if(
+        name.includes('ao') ||
+        name.includes('occlusion') ||
+        name.includes('mixed_ao')
+      ) groups[key].ao=file;
       if(name.includes('roughness')) groups[key].roughness=file;
       if(name.includes('metallic')) groups[key].metallic=file;
       if(name.includes('smoothness')) groups[key].smoothness=file;
@@ -614,10 +618,26 @@ function addRGBAMerge(){
   card.innerHTML=`
     <h2>RGBA Merge</h2>
     <div style="display:grid;gap:10px;">
-      <input type="file" id="rInput" accept="image/png,image/jpeg">
-      <input type="file" id="gInput" accept="image/png,image/jpeg">
-      <input type="file" id="bInput" accept="image/png,image/jpeg">
-      <input type="file" id="aInput" accept="image/png,image/jpeg">
+
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center;">
+        <div>R</div>
+        <input type="file" id="rInput" accept="image/png,image/jpeg">
+      </div>
+
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center;">
+        <div>G</div>
+        <input type="file" id="gInput" accept="image/png,image/jpeg">
+      </div>
+
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center;">
+        <div>B</div>
+        <input type="file" id="bInput" accept="image/png,image/jpeg">
+      </div>
+
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center;">
+        <div>A</div>
+        <input type="file" id="aInput" accept="image/png,image/jpeg">
+      </div>
       <button id="mergeBtn">Merge Channels</button>
     </div>
   `;
