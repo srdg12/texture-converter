@@ -218,115 +218,45 @@ const statusText = document.getElementById('status');
 const beforePreview = document.getElementById('beforePreview');
 const afterPreview = document.getElementById('afterPreview');
 
-let currentCanvas = null;
-let currentImage = null;
+let currentImageData = null;
+let beforeImageData = null;
+let batchMode = 'orm';
 
 const texts = {
   ko: {
-    title: '텍스쳐 컨버터',
-    subtitle: 'Unity URP ↔ Unreal ORM 변환',
-    unityTitle: 'Unity → ORM',
-    ormTitle: 'ORM → Unity',
-    splitTitle: '채널 분리',
-    batchTitle: '배치 변환',
-    beforeLabel: '변환 전',
-    afterLabel: '변환 후',
-    unityDropText: '클릭 또는 드래그',
-    ormDropText: '클릭 또는 드래그',
-    splitDropText: '클릭 또는 드래그',
-    batchDropText: '폴더 또는 여러 파일'
+    ready: '준비 완료',
+    mergeDone: 'RGBA 병합 완료',
+    batchDone: '배치 병합 완료'
   },
   en: {
-    title: 'Texture Converter',
-    subtitle: 'Unity URP ↔ Unreal ORM Converter',
-    unityTitle: 'Unity → ORM',
-    ormTitle: 'ORM → Unity',
-    splitTitle: 'Split Channels',
-    batchTitle: 'Batch Process',
-    beforeLabel: 'Before',
-    afterLabel: 'After',
-    unityDropText: 'Click or Drag',
-    ormDropText: 'Click or Drag',
-    splitDropText: 'Click or Drag',
-    batchDropText: 'Folder or Multiple Files'
+    ready: 'Ready',
+    mergeDone: 'RGBA Merge Complete',
+    batchDone: 'Batch Merge Complete'
   }
 };
 
-function setLanguage(lang) {
-  const t = texts[lang];
-
-  Object.keys(t).forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.textContent = t[id];
-    }
-  });
-}
-
-function setStatus(msg) {
+function setStatus(msg){
   statusText.textContent = msg;
 }
 
-function setupDropzone(dropzone, input, callback) {
-  dropzone.addEventListener('click', () => {
-    input.value = '';
-    input.click();
-  });
-
-  input.addEventListener('change', async (e) => {
-    const files = [...e.target.files];
-    if (files.length) {
-      await callback(files);
-    }
-  });
-
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.classList.add('dragover');
-  });
-
-  dropzone.addEventListener('dragleave', () => {
-    dropzone.classList.remove('dragover');
-  });
-
-  dropzone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-
-    const files = [...e.dataTransfer.files];
-
-    if (files.length) {
-      await callback(files);
-    }
-  });
+function createCanvas(w,h){
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
 }
 
-function downloadCanvas(canvas, filename) {
-  canvas.toBlob(blob => {
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    a.href = url;
-    a.download = filename;
-    a.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 1000);
-  }, 'image/png');
-}
-
-function loadImage(file) {
-  return new Promise((resolve, reject) => {
+function loadImage(file){
+  return new Promise((resolve,reject)=>{
     const img = new Image();
     const url = URL.createObjectURL(file);
 
-    img.onload = () => {
-      URL.revokeObjectURL(url);
+    img.onload = ()=>{
       resolve(img);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
     };
 
-    img.onerror = () => {
+    img.onerror = ()=>{
       URL.revokeObjectURL(url);
       reject(new Error('이미지 로드 실패'));
     };
@@ -335,325 +265,418 @@ function loadImage(file) {
   });
 }
 
-function createCanvas(w, h) {
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  return canvas;
+function setupDropzone(dropzone,input,callback){
+  dropzone.addEventListener('click',()=>{
+    input.value='';
+    input.click();
+  });
+
+  input.addEventListener('change', async e=>{
+    const files=[...e.target.files];
+    if(files.length) await callback(files);
+  });
+
+  dropzone.addEventListener('dragover',e=>{
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+
+  dropzone.addEventListener('dragleave',()=>{
+    dropzone.classList.remove('dragover');
+  });
+
+  dropzone.addEventListener('drop',async e=>{
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+
+    const files=[...e.dataTransfer.files];
+    if(files.length) await callback(files);
+  });
 }
 
-async function unityToORM(files) {
-  try {
-    const file = files[0];
-    const img = await loadImage(file);
+function downloadBlob(blob,name){
+  const a=document.createElement('a');
+  const url=URL.createObjectURL(blob);
 
-    beforePreview.src = img.src;
+  a.href=url;
+  a.download=name;
+  a.click();
 
-    const canvas = createCanvas(img.width, img.height);
-    const ctx = canvas.getContext('2d');
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 
-    ctx.drawImage(img, 0, 0);
+function previewImageData(imageData,target){
+  const canvas=createCanvas(imageData.width,imageData.height);
+  const ctx=canvas.getContext('2d');
+  ctx.putImageData(imageData,0,0);
+  target.src=canvas.toDataURL('image/png');
+}
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+function extractChannel(imageData,channel){
+  const out=new ImageData(imageData.width,imageData.height);
 
-    for (let i = 0; i < data.length; i += 4) {
-      const metallic = data[i];
-      const smoothness = data[i + 3];
-      const roughness = 255 - smoothness;
+  for(let i=0;i<imageData.data.length;i+=4){
+    const r=imageData.data[i];
+    const g=imageData.data[i+1];
+    const b=imageData.data[i+2];
+    const a=imageData.data[i+3];
 
-      data[i] = 255;
-      data[i + 1] = roughness;
-      data[i + 2] = metallic;
-      data[i + 3] = 255;
+    if(channel==='rgb'){
+      out.data[i]=r;
+      out.data[i+1]=g;
+      out.data[i+2]=b;
+      out.data[i+3]=255;
+      continue;
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    let v=0;
 
-    currentCanvas = canvas;
-    currentImage = imageData;
+    if(channel==='r') v=r;
+    if(channel==='g') v=g;
+    if(channel==='b') v=b;
+    if(channel==='a') v=a;
 
-    afterPreview.src = canvas.toDataURL('image/png');
+    out.data[i]=v;
+    out.data[i+1]=v;
+    out.data[i+2]=v;
+    out.data[i+3]=255;
+  }
 
-    downloadCanvas(canvas, file.name.replace(/\.[^/.]+$/, '') + '_ORM.png');
+  return out;
+}
 
-    setStatus('Unity → ORM 변환 완료');
+async function getImageDataFromFile(file){
+  const img=await loadImage(file);
 
-  } catch (err) {
+  const canvas=createCanvas(img.width,img.height);
+  const ctx=canvas.getContext('2d');
+
+  ctx.drawImage(img,0,0);
+
+  return ctx.getImageData(0,0,img.width,img.height);
+}
+
+async function unityToORM(files){
+  try{
+    const file=files[0];
+
+    const imageData=await getImageDataFromFile(file);
+
+    beforeImageData=imageData;
+    previewImageData(imageData,beforePreview);
+
+    const out=new ImageData(imageData.width,imageData.height);
+
+    for(let i=0;i<imageData.data.length;i+=4){
+      const metallic=imageData.data[i];
+      const smoothness=imageData.data[i+3];
+
+      out.data[i]=255;
+      out.data[i+1]=255-smoothness;
+      out.data[i+2]=metallic;
+      out.data[i+3]=255;
+    }
+
+    currentImageData=out;
+    previewImageData(out,afterPreview);
+
+    const canvas=createCanvas(out.width,out.height);
+    canvas.getContext('2d').putImageData(out,0,0);
+
+    canvas.toBlob(blob=>{
+      downloadBlob(blob,file.name.replace(/\.[^/.]+$/,'')+'_ORM.png');
+    },'image/png');
+
+    setStatus('Unity → ORM 완료');
+
+  }catch(err){
     console.error(err);
     setStatus(err.message);
   }
 }
 
-async function ormToUnity(files) {
-  try {
-    const file = files[0];
-    const img = await loadImage(file);
+async function ormToUnity(files){
+  try{
+    const file=files[0];
 
-    beforePreview.src = img.src;
+    const imageData=await getImageDataFromFile(file);
 
-    const canvas = createCanvas(img.width, img.height);
-    const ctx = canvas.getContext('2d');
+    beforeImageData=imageData;
+    previewImageData(imageData,beforePreview);
 
-    ctx.drawImage(img, 0, 0);
+    const out=new ImageData(imageData.width,imageData.height);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+    for(let i=0;i<imageData.data.length;i+=4){
+      const roughness=imageData.data[i+1];
+      const metallic=imageData.data[i+2];
 
-    for (let i = 0; i < data.length; i += 4) {
-      const roughness = data[i + 1];
-      const metallic = data[i + 2];
-      const smoothness = 255 - roughness;
-
-      data[i] = metallic;
-      data[i + 1] = metallic;
-      data[i + 2] = metallic;
-      data[i + 3] = smoothness;
+      out.data[i]=metallic;
+      out.data[i+1]=metallic;
+      out.data[i+2]=metallic;
+      out.data[i+3]=255-roughness;
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    currentImageData=out;
+    previewImageData(out,afterPreview);
 
-    currentCanvas = canvas;
-    currentImage = imageData;
+    const canvas=createCanvas(out.width,out.height);
+    canvas.getContext('2d').putImageData(out,0,0);
 
-    afterPreview.src = canvas.toDataURL('image/png');
+    canvas.toBlob(blob=>{
+      downloadBlob(blob,file.name.replace(/\.[^/.]+$/,'')+'_MetallicSmoothness.png');
+    },'image/png');
 
-    downloadCanvas(canvas, file.name.replace(/\.[^/.]+$/, '') + '_MetallicSmoothness.png');
+    setStatus('ORM → Unity 완료');
 
-    setStatus('ORM → Unity 변환 완료');
-
-  } catch (err) {
+  }catch(err){
     console.error(err);
     setStatus(err.message);
   }
 }
 
-async function splitChannels(files) {
-  try {
-    if (typeof JSZip === 'undefined') {
-      throw new Error('JSZip 로딩 실패');
+async function splitChannels(files){
+  try{
+    if(typeof JSZip==='undefined') throw new Error('JSZip 로딩 실패');
+
+    const file=files[0];
+    const imageData=await getImageDataFromFile(file);
+
+    beforeImageData=imageData;
+    previewImageData(imageData,beforePreview);
+
+    const zip=new JSZip();
+    const names=['R','G','B','A'];
+
+    for(let c=0;c<4;c++){
+      const channel=['r','g','b','a'][c];
+      const out=extractChannel(imageData,channel);
+
+      const canvas=createCanvas(out.width,out.height);
+      canvas.getContext('2d').putImageData(out,0,0);
+
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+
+      zip.file(names[c]+'.png',blob);
     }
 
-    const file = files[0];
-    const img = await loadImage(file);
-
-    beforePreview.src = img.src;
-
-    const sourceCanvas = createCanvas(img.width, img.height);
-    const sourceCtx = sourceCanvas.getContext('2d');
-
-    sourceCtx.drawImage(img, 0, 0);
-
-    const imageData = sourceCtx.getImageData(0, 0, img.width, img.height);
-
-    const zip = new JSZip();
-
-    const channels = ['R', 'G', 'B', 'A'];
-
-    for (let c = 0; c < 4; c++) {
-      const canvas = createCanvas(img.width, img.height);
-      const ctx = canvas.getContext('2d');
-
-      const newData = ctx.createImageData(img.width, img.height);
-
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const value = imageData.data[i + c];
-
-        newData.data[i] = value;
-        newData.data[i + 1] = value;
-        newData.data[i + 2] = value;
-        newData.data[i + 3] = 255;
-      }
-
-      ctx.putImageData(newData, 0, 0);
-
-      const blob = await new Promise(resolve => {
-        canvas.toBlob(resolve, 'image/png');
-      });
-
-      zip.file(`${channels[c]}.png`, blob);
-
-      if (c === 0) {
-        currentCanvas = canvas;
-        currentImage = newData;
-        afterPreview.src = canvas.toDataURL('image/png');
-      }
-    }
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(zipBlob);
-
-    a.href = url;
-    a.download = file.name.replace(/\.[^/.]+$/, '') + '_Channels.zip';
-    a.click();
-
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    downloadBlob(zipBlob,file.name.replace(/\.[^/.]+$/,'')+'_Channels.zip');
 
     setStatus('채널 분리 완료');
 
-  } catch (err) {
+  }catch(err){
     console.error(err);
     setStatus(err.message);
   }
 }
 
-async function batchProcess(files) {
-  try {
-    if (typeof JSZip === 'undefined') {
-      throw new Error('JSZip 로딩 실패');
+async function batchProcess(files){
+  try{
+    if(typeof JSZip==='undefined') throw new Error('JSZip 로딩 실패');
+
+    const zip=new JSZip();
+    const groups={};
+
+    for(const file of files){
+      const name=file.name.toLowerCase();
+
+      let key=name
+        .replace(/ao|occlusion/g,'')
+        .replace(/roughness/g,'')
+        .replace(/metallic/g,'')
+        .replace(/smoothness/g,'')
+        .replace(/_/g,'')
+        .replace(/-/g,'')
+        .replace(/\.[^/.]+$/,'');
+
+      if(!groups[key]) groups[key]={};
+
+      if(name.includes('ao')||name.includes('occlusion')) groups[key].ao=file;
+      if(name.includes('roughness')) groups[key].roughness=file;
+      if(name.includes('metallic')) groups[key].metallic=file;
+      if(name.includes('smoothness')) groups[key].smoothness=file;
     }
 
-    const zip = new JSZip();
+    for(const key in groups){
+      const g=groups[key];
 
-    for (const file of files) {
+      const base=g.ao||g.roughness||g.metallic||g.smoothness;
+      if(!base) continue;
 
-      const lower = file.name.toLowerCase();
+      const baseData=await getImageDataFromFile(base);
+      const width=baseData.width;
+      const height=baseData.height;
 
-      const img = await loadImage(file);
-
-      const canvas = createCanvas(img.width, img.height);
-      const ctx = canvas.getContext('2d');
-
-      ctx.drawImage(img, 0, 0);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      if (
-        lower.includes('orm') ||
-        lower.includes('occlusionroughnessmetallic')
-      ) {
-        for (let i = 0; i < data.length; i += 4) {
-          const roughness = data[i + 1];
-          const metallic = data[i + 2];
-          const smoothness = 255 - roughness;
-
-          data[i] = metallic;
-          data[i + 1] = metallic;
-          data[i + 2] = metallic;
-          data[i + 3] = smoothness;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-
-        const blob = await new Promise(resolve => {
-          canvas.toBlob(resolve, 'image/png');
-        });
-
-        zip.file(file.name.replace(/\.[^/.]+$/, '') + '_Unity.png', blob);
-
-      } else {
-
-        for (let i = 0; i < data.length; i += 4) {
-          const metallic = data[i];
-          const smoothness = data[i + 3];
-          const roughness = 255 - smoothness;
-
-          data[i] = 255;
-          data[i + 1] = roughness;
-          data[i + 2] = metallic;
-          data[i + 3] = 255;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-
-        const blob = await new Promise(resolve => {
-          canvas.toBlob(resolve, 'image/png');
-        });
-
-        zip.file(file.name.replace(/\.[^/.]+$/, '') + '_ORM.png', blob);
+      async function loadGray(file){
+        if(!file) return null;
+        const d=await getImageDataFromFile(file);
+        return d.data;
       }
 
-      canvas.width = 1;
-      canvas.height = 1;
+      const ao=await loadGray(g.ao);
+      const roughness=await loadGray(g.roughness);
+      const metallic=await loadGray(g.metallic);
+      const smoothness=await loadGray(g.smoothness);
+
+      const out=new ImageData(width,height);
+
+      for(let i=0;i<out.data.length;i+=4){
+
+        if(batchMode==='orm'){
+          out.data[i]=ao?ao[i]:255;
+          out.data[i+1]=roughness?roughness[i]:(smoothness?255-smoothness[i]:255);
+          out.data[i+2]=metallic?metallic[i]:0;
+          out.data[i+3]=255;
+        }
+
+        if(batchMode==='metallic'){
+          const metallicValue=metallic?metallic[i]:0;
+
+          let smoothnessValue=255;
+
+          if(smoothness) smoothnessValue=smoothness[i];
+          if(roughness) smoothnessValue=255-roughness[i];
+
+          out.data[i]=metallicValue;
+          out.data[i+1]=metallicValue;
+          out.data[i+2]=metallicValue;
+          out.data[i+3]=smoothnessValue;
+        }
+      }
+
+      const canvas=createCanvas(width,height);
+      canvas.getContext('2d').putImageData(out,0,0);
+
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+
+      zip.file(key+'_'+batchMode+'.png',blob);
     }
 
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    downloadBlob(zipBlob,'Merged_Textures.zip');
 
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(zipBlob);
+    setStatus(texts.ko.batchDone);
 
-    a.href = url;
-    a.download = 'Batch_Converted.zip';
-    a.click();
-
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-    setStatus('배치 처리 완료');
-
-  } catch (err) {
+  }catch(err){
     console.error(err);
     setStatus(err.message);
   }
 }
 
-function showChannel(channel) {
-  if (!currentImage) return;
+function addBeforeButtons(){
+  const box=document.querySelector('.preview-box');
 
-  const canvas = createCanvas(currentImage.width, currentImage.height);
-  const ctx = canvas.getContext('2d');
+  const wrap=document.createElement('div');
+  wrap.className='channel-buttons';
 
-  const output = ctx.createImageData(currentImage.width, currentImage.height);
+  wrap.innerHTML=`
+    <button data-before="rgb">RGB</button>
+    <button data-before="r">R</button>
+    <button data-before="g">G</button>
+    <button data-before="b">B</button>
+    <button data-before="a">A</button>
+  `;
 
-  for (let i = 0; i < currentImage.data.length; i += 4) {
+  box.appendChild(wrap);
 
-    const r = currentImage.data[i];
-    const g = currentImage.data[i + 1];
-    const b = currentImage.data[i + 2];
-    const a = currentImage.data[i + 3];
-
-    if (channel === 'rgb') {
-      output.data[i] = r;
-      output.data[i + 1] = g;
-      output.data[i + 2] = b;
-      output.data[i + 3] = 255;
-    }
-
-    if (channel === 'r') {
-      output.data[i] = r;
-      output.data[i + 1] = r;
-      output.data[i + 2] = r;
-      output.data[i + 3] = 255;
-    }
-
-    if (channel === 'g') {
-      output.data[i] = g;
-      output.data[i + 1] = g;
-      output.data[i + 2] = g;
-      output.data[i + 3] = 255;
-    }
-
-    if (channel === 'b') {
-      output.data[i] = b;
-      output.data[i + 1] = b;
-      output.data[i + 2] = b;
-      output.data[i + 3] = 255;
-    }
-
-    if (channel === 'a') {
-      output.data[i] = a;
-      output.data[i + 1] = a;
-      output.data[i + 2] = a;
-      output.data[i + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(output, 0, 0);
-
-  afterPreview.src = canvas.toDataURL('image/png');
+  document.querySelectorAll('[data-before]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(!beforeImageData) return;
+      previewImageData(extractChannel(beforeImageData,btn.dataset.before),beforePreview);
+    });
+  });
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+function addBatchSelector(){
+  const card=document.querySelector('#batchDrop').parentElement;
 
-  document.getElementById('koBtn').addEventListener('click', () => {
-    setLanguage('ko');
-  });
+  const wrap=document.createElement('div');
+  wrap.style.marginTop='12px';
 
-  document.getElementById('enBtn').addEventListener('click', () => {
-    setLanguage('en');
+  wrap.innerHTML=`
+    <select id="batchModeSelect" style="padding:10px;border-radius:10px;background:#111827;color:white;border:none;width:100%;">
+      <option value="orm">Merge → ORM</option>
+      <option value="metallic">Merge → MetallicSmoothness</option>
+    </select>
+  `;
+
+  card.appendChild(wrap);
+
+  document.getElementById('batchModeSelect').addEventListener('change',e=>{
+    batchMode=e.target.value;
   });
+}
+
+function addRGBAMerge(){
+  const card=document.createElement('div');
+  card.className='card';
+
+  card.innerHTML=`
+    <h2>RGBA Merge</h2>
+    <div style="display:grid;gap:10px;">
+      <input type="file" id="rInput" accept="image/png,image/jpeg">
+      <input type="file" id="gInput" accept="image/png,image/jpeg">
+      <input type="file" id="bInput" accept="image/png,image/jpeg">
+      <input type="file" id="aInput" accept="image/png,image/jpeg">
+      <button id="mergeBtn">Merge Channels</button>
+    </div>
+  `;
+
+  document.querySelector('.grid').appendChild(card);
+
+  document.getElementById('mergeBtn').addEventListener('click',async()=>{
+    try{
+      const rFile=document.getElementById('rInput').files[0];
+      const gFile=document.getElementById('gInput').files[0];
+      const bFile=document.getElementById('bInput').files[0];
+      const aFile=document.getElementById('aInput').files[0];
+
+      const base=rFile||gFile||bFile||aFile;
+      if(!base) throw new Error('텍스쳐 필요');
+
+      const baseData=await getImageDataFromFile(base);
+      const width=baseData.width;
+      const height=baseData.height;
+
+      async function getGray(file){
+        if(!file) return null;
+        return (await getImageDataFromFile(file)).data;
+      }
+
+      const r=await getGray(rFile);
+      const g=await getGray(gFile);
+      const b=await getGray(bFile);
+      const a=await getGray(aFile);
+
+      const out=new ImageData(width,height);
+
+      for(let i=0;i<out.data.length;i+=4){
+        out.data[i]=r?r[i]:0;
+        out.data[i+1]=g?g[i]:0;
+        out.data[i+2]=b?b[i]:0;
+        out.data[i+3]=a?a[i]:255;
+      }
+
+      currentImageData=out;
+      previewImageData(out,afterPreview);
+
+      const canvas=createCanvas(width,height);
+      canvas.getContext('2d').putImageData(out,0,0);
+
+      canvas.toBlob(blob=>{
+        downloadBlob(blob,'Merged_RGBA.png');
+      },'image/png');
+
+      setStatus(texts.ko.mergeDone);
+
+    }catch(err){
+      console.error(err);
+      setStatus(err.message);
+    }
+  });
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
 
   setupDropzone(
     document.getElementById('unityDrop'),
@@ -679,15 +702,18 @@ window.addEventListener('DOMContentLoaded', () => {
     batchProcess
   );
 
-  document.querySelectorAll('[data-channel]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      showChannel(btn.dataset.channel);
+  document.querySelectorAll('[data-channel]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(!currentImageData) return;
+      previewImageData(extractChannel(currentImageData,btn.dataset.channel),afterPreview);
     });
   });
 
-  setLanguage('ko');
+  addBeforeButtons();
+  addBatchSelector();
+  addRGBAMerge();
 
-  setStatus('준비 완료');
+  setStatus(texts.ko.ready);
 });
 </script>
 </body>
