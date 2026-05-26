@@ -516,13 +516,15 @@ async function batchProcess(files){
       const name=file.name.toLowerCase();
 
       let key=name
-        .replace(/ao|occlusion/g,'')
-        .replace(/roughness/g,'')
-        .replace(/metallic/g,'')
-        .replace(/smoothness/g,'')
-        .replace(/_/g,'')
-        .replace(/-/g,'')
-        .replace(/\.[^/.]+$/,'');
+        .replace(/_mixed_ao/i,'')
+        .replace(/_ao/i,'')
+        .replace(/_occlusion/i,'')
+        .replace(/_roughness/i,'')
+        .replace(/_metallic/i,'')
+        .replace(/_smoothness/i,'')
+        .replace(/\.[^/.]+$/,'')
+        .replace(/[_-]+$/,'')
+        .trim();
 
       if(!groups[key]) groups[key]={};
 
