@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -151,28 +151,28 @@ button:hover {
   <div class="card">
     <h2 id="unityTitle">Unity → ORM</h2>
     <div class="dropzone" id="unityDrop">
-      <div id="unityDropText">클릭 또는 드래그</div>
+      <div id="unityDropText">Click or Drag file here</div>
     </div>
   </div>
 
   <div class="card">
     <h2 id="ormTitle">ORM → Unity</h2>
     <div class="dropzone" id="ormDrop">
-      <div id="ormDropText">클릭 또는 드래그</div>
+      <div id="ormDropText">Click or Drag file here</div>
     </div>
   </div>
 
   <div class="card">
-    <h2 id="splitTitle">채널 분리</h2>
+    <h2 id="splitTitle">Split Channels</h2>
     <div class="dropzone" id="splitDrop">
-      <div id="splitDropText">클릭 또는 드래그</div>
+      <div id="splitDropText">Click or Drag file here</div>
     </div>
   </div>
 
   <div class="card">
-    <h2 id="batchTitle">배치 변환</h2>
+    <h2 id="batchTitle">Batch Convert</h2>
     <div class="dropzone" id="batchDrop">
-      <div id="batchDropText">폴더 또는 여러 파일</div>
+      <div id="batchDropText">Folder or Multiple Files</div>
     </div>
   </div>
 
@@ -208,7 +208,7 @@ button:hover {
 <div class="status" id="status"></div>
 
 <div class="footer" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
-  <div>PNG/JPG 지원 · ZIP 출력 · GitHub Pages 지원</div>
+  <div id="footerSupport">PNG/JPG Supported · ZIP Output · GitHub Pages Supported</div>
 
   <a
     href="https://paypal.me/OldRepublicKR"
@@ -260,38 +260,70 @@ let batchMode = 'orm';
 const texts = {
   ko: {
     ready: '준비 완료',
+    unityDone: 'Unity → ORM 완료',
+    ormDone: 'ORM → Unity 완료',
+    splitDone: '채널 분리 완료',
     mergeDone: 'RGBA 병합 완료',
     batchDone: '배치 병합 완료',
     unityTitle: 'Unity → ORM 변환',
     ormTitle: 'ORM → Unity 변환',
     splitTitle: '채널 분리',
     batchTitle: '배치 변환',
-    mergeTitle: 'RGBA 병합'
+    mergeTitle: 'RGBA 병합',
+    dropText: '클릭 또는 드래그',
+    batchDropText: '폴더 또는 여러 파일',
+    mergeBtnText: '채널 병합',
+    footerSupport: 'PNG/JPG 지원 · ZIP 출력 · GitHub Pages 지원',
+    errorLoad: '이미지 로드 실패',
+    errorNoTexture: '텍스쳐 필요'
   },
   en: {
     ready: 'Ready',
+    unityDone: 'Unity → ORM Conversion Complete',
+    ormDone: 'ORM → Unity Conversion Complete',
+    splitDone: 'Channel Split Complete',
     mergeDone: 'RGBA Merge Complete',
     batchDone: 'Batch Merge Complete',
     unityTitle: 'Unity → ORM Convert',
     ormTitle: 'ORM → Unity Convert',
     splitTitle: 'Split Channels',
     batchTitle: 'Batch Convert',
-    mergeTitle: 'RGBA Merge'
+    mergeTitle: 'RGBA Merge',
+    dropText: 'Click or Drag file here',
+    batchDropText: 'Folder or Multiple Files',
+    mergeBtnText: 'Merge Channels',
+    footerSupport: 'PNG/JPG Supported · ZIP Output · GitHub Pages Supported',
+    errorLoad: 'Failed to load image',
+    errorNoTexture: 'Texture required'
   }
 };
 
-let currentLang = 'ko';
+let currentLang = 'en'; // 기본 언어를 영어로 지정
 
 function setLanguage(lang){
   currentLang = lang;
 
-  document.querySelector('[data-i18n="unityTitle"]').textContent = texts[lang].unityTitle;
-  document.querySelector('[data-i18n="ormTitle"]').textContent = texts[lang].ormTitle;
-  document.querySelector('[data-i18n="splitTitle"]').textContent = texts[lang].splitTitle;
-  document.querySelector('[data-i18n="batchTitle"]').textContent = texts[lang].batchTitle;
+  // 메인 카드 타이틀 변경
+  document.getElementById('unityTitle').textContent = texts[lang].unityTitle;
+  document.getElementById('ormTitle').textContent = texts[lang].ormTitle;
+  document.getElementById('splitTitle').textContent = texts[lang].splitTitle;
+  document.getElementById('batchTitle').textContent = texts[lang].batchTitle;
 
-  const mergeTitle = document.querySelector('[data-i18n="mergeTitle"]');
+  // 드롭존 텍스트 변경
+  document.getElementById('unityDropText').textContent = texts[lang].dropText;
+  document.getElementById('ormDropText').textContent = texts[lang].dropText;
+  document.getElementById('splitDropText').textContent = texts[lang].dropText;
+  document.getElementById('batchDropText').textContent = texts[lang].batchDropText;
+
+  // 하단 지원 포맷 텍스트 변경
+  document.getElementById('footerSupport').textContent = texts[lang].footerSupport;
+
+  // 동적 생성 요소 변경 (존재할 경우)
+  const mergeTitle = document.getElementById('mergeTitleId');
   if(mergeTitle) mergeTitle.textContent = texts[lang].mergeTitle;
+
+  const mergeBtn = document.getElementById('mergeBtn');
+  if(mergeBtn) mergeBtn.textContent = texts[lang].mergeBtnText;
 
   setStatus(texts[lang].ready);
 }
@@ -319,7 +351,7 @@ function loadImage(file){
 
     img.onerror = ()=>{
       URL.revokeObjectURL(url);
-      reject(new Error('이미지 로드 실패'));
+      reject(new Error(texts[currentLang].errorLoad));
     };
 
     img.src = url;
@@ -448,7 +480,7 @@ async function unityToORM(files){
       downloadBlob(blob,file.name.replace(/\.[^/.]+$/,'')+'_ORM.png');
     },'image/png');
 
-    setStatus('Unity → ORM 완료');
+    setStatus(texts[currentLang].unityDone);
 
   }catch(err){
     console.error(err);
@@ -487,7 +519,7 @@ async function ormToUnity(files){
       downloadBlob(blob,file.name.replace(/\.[^/.]+$/,'')+'_MetallicSmoothness.png');
     },'image/png');
 
-    setStatus('ORM → Unity 완료');
+    setStatus(texts[currentLang].ormDone);
 
   }catch(err){
     console.error(err);
@@ -497,7 +529,7 @@ async function ormToUnity(files){
 
 async function splitChannels(files){
   try{
-    if(typeof JSZip==='undefined') throw new Error('JSZip 로딩 실패');
+    if(typeof JSZip==='undefined') throw new Error('JSZip load failed');
 
     const file=files[0];
     const imageData=await getImageDataFromFile(file);
@@ -523,7 +555,7 @@ async function splitChannels(files){
     const zipBlob=await zip.generateAsync({type:'blob'});
     downloadBlob(zipBlob,file.name.replace(/\.[^/.]+$/,'')+'_Channels.zip');
 
-    setStatus('채널 분리 완료');
+    setStatus(texts[currentLang].splitDone);
 
   }catch(err){
     console.error(err);
@@ -533,7 +565,7 @@ async function splitChannels(files){
 
 async function batchProcess(files){
   try{
-    if(typeof JSZip==='undefined') throw new Error('JSZip 로딩 실패');
+    if(typeof JSZip==='undefined') throw new Error('JSZip load failed');
 
     const zip=new JSZip();
     const groups={};
@@ -622,7 +654,7 @@ async function batchProcess(files){
     const zipBlob=await zip.generateAsync({type:'blob'});
     downloadBlob(zipBlob,'Merged_Textures.zip');
 
-    setStatus(texts.ko.batchDone);
+    setStatus(texts[currentLang].batchDone);
 
   }catch(err){
     console.error(err);
@@ -679,7 +711,7 @@ function addRGBAMerge(){
   card.className='card';
 
   card.innerHTML=`
-    <h2>RGBA Merge</h2>
+    <h2 id="mergeTitleId">${texts[currentLang].mergeTitle}</h2>
     <div style="display:grid;gap:10px;">
 
       <div style="display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center;">
@@ -701,7 +733,7 @@ function addRGBAMerge(){
         <div>A</div>
         <input type="file" id="aInput" accept="image/png,image/jpeg">
       </div>
-      <button id="mergeBtn" style="width:100%;max-width:220px;justify-self:center;">Merge Channels</button>
+      <button id="mergeBtn" style="width:100%;max-width:220px;justify-self:center;">${texts[currentLang].mergeBtnText}</button>
     </div>
   `;
 
@@ -715,7 +747,7 @@ function addRGBAMerge(){
       const aFile=document.getElementById('aInput').files[0];
 
       const base=rFile||gFile||bFile||aFile;
-      if(!base) throw new Error('텍스쳐 필요');
+      if(!base) throw new Error(texts[currentLang].errorNoTexture);
 
       const baseData=await getImageDataFromFile(base);
       const width=baseData.width;
@@ -750,7 +782,7 @@ function addRGBAMerge(){
         downloadBlob(blob,'Merged_RGBA.png');
       },'image/png');
 
-      setStatus(texts.ko.mergeDone);
+      setStatus(texts[currentLang].mergeDone);
 
     }catch(err){
       console.error(err);
@@ -792,11 +824,16 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
+  // 언어 변경 버튼 이벤트 바인딩
+  document.getElementById('koBtn').addEventListener('click', () => setLanguage('ko'));
+  document.getElementById('enBtn').addEventListener('click', () => setLanguage('en'));
+
   addBeforeButtons();
   addBatchSelector();
   addRGBAMerge();
 
-  setStatus(texts.ko.ready);
+  // 초기 시작 언어를 영어('en')로 설정하여 다국어 렌더링 실행
+  setLanguage('en');
 });
 </script>
 </body>
