@@ -261,14 +261,40 @@ const texts = {
   ko: {
     ready: '준비 완료',
     mergeDone: 'RGBA 병합 완료',
-    batchDone: '배치 병합 완료'
+    batchDone: '배치 병합 완료',
+    unityTitle: 'Unity → ORM 변환',
+    ormTitle: 'ORM → Unity 변환',
+    splitTitle: '채널 분리',
+    batchTitle: '배치 변환',
+    mergeTitle: 'RGBA 병합'
   },
   en: {
     ready: 'Ready',
     mergeDone: 'RGBA Merge Complete',
-    batchDone: 'Batch Merge Complete'
+    batchDone: 'Batch Merge Complete',
+    unityTitle: 'Unity → ORM Convert',
+    ormTitle: 'ORM → Unity Convert',
+    splitTitle: 'Split Channels',
+    batchTitle: 'Batch Convert',
+    mergeTitle: 'RGBA Merge'
   }
 };
+
+let currentLang = 'ko';
+
+function setLanguage(lang){
+  currentLang = lang;
+
+  document.querySelector('[data-i18n="unityTitle"]').textContent = texts[lang].unityTitle;
+  document.querySelector('[data-i18n="ormTitle"]').textContent = texts[lang].ormTitle;
+  document.querySelector('[data-i18n="splitTitle"]').textContent = texts[lang].splitTitle;
+  document.querySelector('[data-i18n="batchTitle"]').textContent = texts[lang].batchTitle;
+
+  const mergeTitle = document.querySelector('[data-i18n="mergeTitle"]');
+  if(mergeTitle) mergeTitle.textContent = texts[lang].mergeTitle;
+
+  setStatus(texts[lang].ready);
+}
 
 function setStatus(msg){
   statusText.textContent = msg;
