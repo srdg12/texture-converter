@@ -1,9 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Texture Converter</title>
+<title>무료 텍스처 컨버터 | Unity URP ↔ Unreal ORM 변환기</title>
+<meta name="description" content="웹 브라우저에서 바로 작동하는 무료 텍스처 변환 도구입니다. Unity URP(Metallic Smoothness)와 Unreal Engine ORM(Ambient Occlusion, Roughness, Metallic) 맵 간의 상호 변환 및 RGBA 채널 분리/병합을 지원합니다." />
+<meta name="keywords" content="텍스처 컨버터, Unity URP, Unreal ORM, Metallic Smoothness, 채널 분리, 3D 텍스처 변환, 채널 병합, ORM 맵 생성, PBR 텍스처" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://yourdomain.com/" /> <meta property="og:type" content="website" />
+<meta property="og:title" content="무료 텍스처 컨버터 | Unity URP ↔ Unreal ORM" />
+<meta property="og:description" content="서버 업로드 없이 브라우저에서 안전하고 빠르게 처리하는 3D PBR 텍스처 채널 변환/병합 도구" />
+<meta property="og:url" content="https://yourdomain.com/" />
+<meta property="og:site_name" content="Texture Converter" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="무료 텍스처 컨버터 | Unity URP ↔ Unreal ORM" />
+<meta name="twitter:description" content="서버 업로드 없이 브라우저에서 안전하고 빠르게 처리하는 3D PBR 텍스처 채널 변환/병합 도구" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Texture Converter",
+  "alternateName": "텍스처 컨버터 (Unity URP ↔ Unreal ORM)",
+  "url": "https://yourdomain.com/",
+  "operatingSystem": "All",
+  "applicationCategory": "DesignApplication",
+  "description": "Free online PBR texture converter for 3D artists. Convert between Unity URP Metallic-Smoothness maps and Unreal Engine ORM (Occlusion, Roughness, Metallic) maps instantly in your browser.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 * {
@@ -23,7 +54,7 @@ body {
   padding: 24px;
 }
 
-.header {
+header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -31,9 +62,16 @@ body {
   margin-bottom: 24px;
 }
 
-.title {
+.title-area h1 {
+  margin: 0;
   font-size: 32px;
   font-weight: bold;
+}
+
+.title-area p {
+  margin: 4px 0 0 0;
+  font-size: 16px;
+  opacity: 0.8;
 }
 
 .lang-buttons {
@@ -64,6 +102,11 @@ button:hover {
   background: #1f2937;
   border-radius: 16px;
   padding: 20px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 20px;
 }
 
 .dropzone {
@@ -102,6 +145,10 @@ button:hover {
   padding: 16px;
 }
 
+.preview-box h3 {
+  margin-top: 0;
+}
+
 .preview-box img {
   width: 100%;
   background: #0f172a;
@@ -125,7 +172,28 @@ button:hover {
   display: none;
 }
 
-.footer {
+/* 크롤링 성능 향상을 위한 SEO 텍스트 섹션 스타일 */
+.seo-description-section {
+  margin-top: 50px;
+  background: #1f2937;
+  border-radius: 16px;
+  padding: 30px;
+  line-height: 1.7;
+}
+.seo-description-section h2 {
+  color: #60a5fa;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 8px;
+}
+.seo-description-section h3 {
+  color: #93c5fd;
+  margin-top: 24px;
+}
+.seo-description-section ul {
+  padding-left: 20px;
+}
+
+footer {
   margin-top: 40px;
   opacity: 0.7;
 }
@@ -134,80 +202,102 @@ button:hover {
 <body>
 <div class="container">
 
-<div class="header">
-  <div>
-    <div class="title" id="title">Texture Converter</div>
-    <div id="subtitle">Unity URP ↔ Unreal ORM Converter</div>
+<header>
+  <div class="title-area">
+    <h1 id="title">Texture Converter</h1>
+    <p id="subtitle">Unity URP ↔ Unreal ORM Converter</p>
   </div>
 
   <div class="lang-buttons">
     <button id="koBtn">한국어</button>
     <button id="enBtn">English</button>
   </div>
-</div>
+</header>
 
-<div class="grid">
+<main>
+  <div class="grid">
 
-  <div class="card">
-    <h2 id="unityTitle">Unity → ORM</h2>
-    <div class="dropzone" id="unityDrop">
-      <div id="unityDropText">Click or Drag file here</div>
+    <section class="card">
+      <h2 id="unityTitle">Unity → ORM</h2>
+      <div class="dropzone" id="unityDrop">
+        <div id="unityDropText">Click or Drag file here</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 id="ormTitle">ORM → Unity</h2>
+      <div class="dropzone" id="ormDrop">
+        <div id="ormDropText">Click or Drag file here</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 id="splitTitle">Split Channels</h2>
+      <div class="dropzone" id="splitDrop">
+        <div id="splitDropText">Click or Drag file here</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 id="batchTitle">Batch Convert</h2>
+      <div class="dropzone" id="batchDrop">
+        <div id="batchDropText">Folder or Multiple Files</div>
+      </div>
+    </section>
+
+  </div>
+
+  <input type="file" id="unityInput" accept="image/png,image/jpeg" class="hidden">
+  <input type="file" id="ormInput" accept="image/png,image/jpeg" class="hidden">
+  <input type="file" id="splitInput" accept="image/png,image/jpeg" class="hidden">
+  <input type="file" id="batchInput" accept="image/png,image/jpeg" multiple webkitdirectory class="hidden">
+
+  <div class="preview-area">
+
+    <div class="preview-box">
+      <h3 id="beforeLabel">Before</h3>
+      <img id="beforePreview" alt="Texture Preview Before Conversion">
     </div>
-  </div>
 
-  <div class="card">
-    <h2 id="ormTitle">ORM → Unity</h2>
-    <div class="dropzone" id="ormDrop">
-      <div id="ormDropText">Click or Drag file here</div>
+    <div class="preview-box">
+      <h3 id="afterLabel">After</h3>
+      <img id="afterPreview" alt="Texture Preview After Conversion">
+
+      <div class="channel-buttons">
+        <button data-channel="rgb">RGB</button>
+        <button data-channel="r">R</button>
+        <button data-channel="g">G</button>
+        <button data-channel="b">B</button>
+        <button data-channel="a">A</button>
+      </div>
     </div>
+
   </div>
 
-  <div class="card">
-    <h2 id="splitTitle">Split Channels</h2>
-    <div class="dropzone" id="splitDrop">
-      <div id="splitDropText">Click or Drag file here</div>
-    </div>
-  </div>
+  <div class="status" id="status"></div>
 
-  <div class="card">
-    <h2 id="batchTitle">Batch Convert</h2>
-    <div class="dropzone" id="batchDrop">
-      <div id="batchDropText">Folder or Multiple Files</div>
-    </div>
-  </div>
+  <article class="seo-description-section" id="seoContent">
+    <h2>PBR Texture Mapping Guide & Info</h2>
+    <p>본 도구는 3D 그래픽스 및 게임 개발 과정에서 자주 사용되는 유니티(Unity URP) 텍스처 포맷과 언리얼 엔진(Unreal Engine ORM) 텍스처 포맷을 클라이언트 측에서 안전하고 빠르게 상호 변환해 주는 무료 PBR 텍스처 컨버터입니다.</p>
+    
+    <h3>1. Unity URP ↔ Unreal ORM 채널 매핑 구조</h3>
+    <ul>
+      <li><strong>Unity URP (Metallic Smoothness):</strong> Red 채널에 Metallic 값이 저장되며, Alpha 채널에 Smoothness(매끄러움) 값이 저장됩니다.</li>
+      <li><strong>Unreal Engine ORM:</strong> Red 채널에 Ambient Occlusion(차폐), Green 채널에 Roughness(거칠기 = 1 - Smoothness), Blue 채널에 Metallic(금속성) 값이 결합되어 하나의 맵으로 사용됩니다.</li>
+    </ul>
 
-</div>
+    <h3>2. 주요 제공 기능</h3>
+    <ul>
+      <li><strong>Unity → ORM:</strong> 메탈릭-스무스니스 맵을 언리얼 표준 Roughness 및 Metallic 구조로 채널을 재배치하여 내보냅니다.</li>
+      <li><strong>ORM → Unity:</strong> 언리얼의 ORM 맵을 분석하여 유니티 엔진에 적합한 메탈릭-스무스니스 포맷으로 롤백합니다.</li>
+      <li><strong>채널 분리 및 RGBA 병합:</strong> 각 이미지의 R, G, B, A 단일 채널을 독립된 흑백 이미지로 분리하거나, 개별 흑백 텍스처를 하나의 완성된 RGBA 이미지 파일로 결합할 수 있습니다.</li>
+    </ul>
+    
+    <p style="font-size:13px; color:#a1a1aa; margin-top:20px;">* 웹 브라우저 내에서 순수하게 자바스크립트로만 연산되므로, 사용자의 텍스처 리소스가 외부 서버로 절대 업로드되지 않아 유출 걱정 없이 안전하게 사용할 수 있습니다.</p>
+  </article>
+</main>
 
-<input type="file" id="unityInput" accept="image/png,image/jpeg" class="hidden">
-<input type="file" id="ormInput" accept="image/png,image/jpeg" class="hidden">
-<input type="file" id="splitInput" accept="image/png,image/jpeg" class="hidden">
-<input type="file" id="batchInput" accept="image/png,image/jpeg" multiple webkitdirectory class="hidden">
-
-<div class="preview-area">
-
-  <div class="preview-box">
-    <h3 id="beforeLabel">Before</h3>
-    <img id="beforePreview">
-  </div>
-
-  <div class="preview-box">
-    <h3 id="afterLabel">After</h3>
-    <img id="afterPreview">
-
-    <div class="channel-buttons">
-      <button data-channel="rgb">RGB</button>
-      <button data-channel="r">R</button>
-      <button data-channel="g">G</button>
-      <button data-channel="b">B</button>
-      <button data-channel="a">A</button>
-    </div>
-  </div>
-
-</div>
-
-<div class="status" id="status"></div>
-
-<div class="footer" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
+<footer style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
   <div id="footerSupport">PNG/JPG Supported · ZIP Output · GitHub Pages Supported</div>
 
   <a
@@ -244,7 +334,7 @@ button:hover {
       </div>
     </div>
   </a>
-</div>
+</footer>
 
 </div>
 
@@ -275,7 +365,9 @@ const texts = {
     mergeBtnText: '채널 병합',
     footerSupport: 'PNG/JPG 지원 · ZIP 출력 · GitHub Pages 지원',
     errorLoad: '이미지 로드 실패',
-    errorNoTexture: '텍스쳐 필요'
+    errorNoTexture: '텍스쳐 필요',
+    seoTitle: 'PBR 텍스처 매핑 가이드 & 설명',
+    seoDesc: '본 도구는 3D 그래픽스 및 게임 개발 과정에서 자주 사용되는 유니티(Unity URP) 텍스처 포맷과 언리얼 엔진(Unreal Engine ORM) 텍스처 포맷을 클라이언트 측에서 안전하고 빠르게 상호 변환해 주는 무료 PBR 텍스처 컨버터입니다.'
   },
   en: {
     ready: 'Ready',
@@ -294,31 +386,36 @@ const texts = {
     mergeBtnText: 'Merge Channels',
     footerSupport: 'PNG/JPG Supported · ZIP Output · GitHub Pages Supported',
     errorLoad: 'Failed to load image',
-    errorNoTexture: 'Texture required'
+    errorNoTexture: 'Texture required',
+    seoTitle: 'PBR Texture Mapping Guide & Info',
+    seoDesc: 'This tool is a free online PBR texture converter that safely and quickly converts between Unity URP (Metallic Smoothness) and Unreal Engine ORM texture formats directly on the client side.'
   }
 };
 
-let currentLang = 'en'; // 기본 언어를 영어로 지정
+let currentLang = 'en'; 
 
 function setLanguage(lang){
   currentLang = lang;
 
-  // 메인 카드 타이틀 변경
   document.getElementById('unityTitle').textContent = texts[lang].unityTitle;
   document.getElementById('ormTitle').textContent = texts[lang].ormTitle;
   document.getElementById('splitTitle').textContent = texts[lang].splitTitle;
   document.getElementById('batchTitle').textContent = texts[lang].batchTitle;
 
-  // 드롭존 텍스트 변경
   document.getElementById('unityDropText').textContent = texts[lang].dropText;
   document.getElementById('ormDropText').textContent = texts[lang].dropText;
   document.getElementById('splitDropText').textContent = texts[lang].dropText;
   document.getElementById('batchDropText').textContent = texts[lang].batchDropText;
 
-  // 하단 지원 포맷 텍스트 변경
   document.getElementById('footerSupport').textContent = texts[lang].footerSupport;
 
-  // 동적 생성 요소 변경 (존재할 경우)
+  // SEO 설명 란 언어 동적 변경 추가
+  if(texts[lang].seoTitle){
+    const seoSec = document.getElementById('seoContent');
+    seoSec.querySelector('h2').textContent = texts[lang].seoTitle;
+    seoSec.querySelector('p').textContent = texts[lang].seoDesc;
+  }
+
   const mergeTitle = document.getElementById('mergeTitleId');
   if(mergeTitle) mergeTitle.textContent = texts[lang].mergeTitle;
 
@@ -693,7 +790,7 @@ function addBatchSelector(){
   wrap.style.marginTop='12px';
 
   wrap.innerHTML=`
-    <select id="batchModeSelect" style="padding:10px;border-radius:10px;background:#111827;color:white;border:none;width:100%;">
+    <select id="batchModeSelect" style="padding:10px;border-radius:10px;background:#111827;color:white;border:none;width:100%;font-size:14px;cursor:pointer;">
       <option value="orm">Merge → ORM</option>
       <option value="metallic">Merge → MetallicSmoothness</option>
     </select>
@@ -707,7 +804,7 @@ function addBatchSelector(){
 }
 
 function addRGBAMerge(){
-  const card=document.createElement('div');
+  const card=document.createElement('section');
   card.className='card';
 
   card.innerHTML=`
@@ -824,7 +921,6 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
   });
 
-  // 언어 변경 버튼 이벤트 바인딩
   document.getElementById('koBtn').addEventListener('click', () => setLanguage('ko'));
   document.getElementById('enBtn').addEventListener('click', () => setLanguage('en'));
 
@@ -832,7 +928,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   addBatchSelector();
   addRGBAMerge();
 
-  // 초기 시작 언어를 영어('en')로 설정하여 다국어 렌더링 실행
   setLanguage('en');
 });
 </script>
