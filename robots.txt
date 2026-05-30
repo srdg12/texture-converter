@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://srdg12.github.io/texture-converter/sitemap.xml
